@@ -1,0 +1,8 @@
+PyMuPDF
+numpy
+scikit-learn
+tensorflow
+tensorflow-hub
+openai
+gradio
+langchain-serve
