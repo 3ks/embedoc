@@ -1,4 +1,3 @@
-import json
 from tempfile import _TemporaryFileWrapper
 
 import gradio as gr
@@ -65,8 +64,8 @@ with gr.Blocks() as demo:
         with gr.Group():
             lcserve_host = gr.Textbox(
                 label='Enter your API Host here',
-                value='http://localhost:8080',
-                placeholder='http://localhost:8080',
+                value='http://langchain-serve:8080',
+                placeholder='http://langchain-serve:8080',
             )
             gr.Markdown(
                 f'<p style="text-align:center">Get your Open AI API key <a href="https://platform.openai.com/account/api-keys">here</a></p>'
@@ -92,6 +91,7 @@ with gr.Blocks() as demo:
             outputs=[answer],
         )
 
-demo.app.server.timeout = 60000 # Set the maximum return time for the results of accessing the upstream server
+#demo.app.server.timeout = 60000 # Set the maximum return time for the results of accessing the upstream server
 
-demo.launch(server_port=7860, enable_queue=True) # `enable_queue=True` to ensure the validity of multi-user requests
+# `enable_queue=True` to ensure the validity of multi-user requests
+demo.launch(server_port=7860, share=True, enable_queue=True, server_name="0.0.0.0", debug=True)

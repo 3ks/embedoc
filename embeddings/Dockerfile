@@ -1,10 +1,22 @@
-FROM python:3.8-slim-buster as pdf-gpt-img
+FROM python:3.10 as npy
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt
+COPY . .
+
+RUN pip3 install -r requirements.txt &&\
+    python3 main.py &&\
+    python3 count.py
+
+
+FROM python:3.10 as npy
+
+WORKDIR /app
 
 COPY . .
 
-CMD [ "python3", "app.py" ]
+RUN pip3 install -r requirements.txt &&\
+    python3 main.py &&\
+    python3 count.py
+
+pip install --no-cache-dir  --use-deprecated=legacy-resolver -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt

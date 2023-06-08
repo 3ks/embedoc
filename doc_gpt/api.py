@@ -13,12 +13,7 @@ from fastapi import UploadFile
 from lcserve import serving
 from sklearn.neighbors import NearestNeighbors
 
-
 recommender = None
-
-
-def download_pdf(url, output_path):
-    urllib.request.urlretrieve(url, output_path)
 
 
 def preprocess(text):
@@ -52,16 +47,16 @@ def text_to_chunks(texts, word_length=150, start_page=1):
 
     for idx, words in enumerate(text_toks):
         for i in range(0, len(words), word_length):
-            chunk = words[i : i + word_length]
+            chunk = words[i: i + word_length]
             if (
-                (i + word_length) > len(words)
-                and (len(chunk) < word_length)
-                and (len(text_toks) != (idx + 1))
+                    (i + word_length) > len(words)
+                    and (len(chunk) < word_length)
+                    and (len(text_toks) != (idx + 1))
             ):
                 text_toks[idx + 1] = chunk + text_toks[idx + 1]
                 continue
             chunk = ' '.join(chunk).strip()
-            chunk = f'[Page no. {idx+start_page}]' + ' ' + '"' + chunk + '"'
+            chunk = f'[Page no. {idx + start_page}]' + ' ' + '"' + chunk + '"'
             chunks.append(chunk)
     return chunks
 
@@ -69,6 +64,7 @@ def text_to_chunks(texts, word_length=150, start_page=1):
 class SemanticSearch:
     def __init__(self):
         self.use = hub.load('./use')
+        self.data = []
         self.fitted = False
 
     def fit(self, data, batch=1000, n_neighbors=5):
@@ -91,7 +87,7 @@ class SemanticSearch:
     def get_text_embedding(self, texts, batch=1000):
         embeddings = []
         for i in range(0, len(texts), batch):
-            text_batch = texts[i : (i + batch)]
+            text_batch = texts[i: (i + batch)]
             emb_batch = self.use(text_batch)
             embeddings.append(emb_batch)
         embeddings = np.vstack(embeddings)
@@ -104,6 +100,7 @@ class SemanticSearch:
         self.nn.fit(self.embeddings)
         self.fitted = True
 
+
 def load_recommender_from_npy(embeddings_path):
     global recommender
     if recommender is None:
@@ -111,9 +108,6 @@ def load_recommender_from_npy(embeddings_path):
 
     recommender.load_embeddings(embeddings_path)
     return 'Embeddings Loaded.'
-
-
-load_recommender_from_npy('embeddings.npy')  # 修改为你的 embeddings 文件路径
 
 def load_recommender(path, start_page=1):
     global recommender
@@ -159,7 +153,7 @@ def generate_answer(question, openAI_key):
     )
 
     prompt += f"Query: {question}\nAnswer:"
-    answer = generate_text(openAI_key, prompt, "text-davinci-003") # model
+    answer = generate_text(openAI_key, prompt, "text-davinci-003")  # model
     return answer
 
 
@@ -171,27 +165,16 @@ def load_openai_key() -> str:
         )
     return key
 
-
-@serving
-def ask_url(url: str, question: str):
-    download_pdf(url, 'corpus.pdf')
-    load_recommender('corpus.pdf')
+async def ask():
+    json_data = request.get_json()
+    question = json_data.get("question")
     openAI_key = load_openai_key()
     return generate_answer(question, openAI_key)
 
+flask_app = Flask(__name__)
 
-@serving
-async def ask_file(file: UploadFile, question: str) -> str:
-    suffix = Path(file.filename).suffix
-    with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        shutil.copyfileobj(file.file, tmp)
-        tmp_path = Path(tmp.name)
+flask_app.add_url_rule("/ask", "ask", ask, methods=["POST"])
 
-    load_recommender(str(tmp_path))
-    openAI_key = load_openai_key()
-    return generate_answer(question, openAI_key)
-
-@serving
-async def ask(question: str) -> str:
-    openAI_key = load_openai_key()
-    return generate_answer(question, openAI_key)
+if __name__ == "__main__":
+    print(load_recommender_from_npy('embeddings.npy'))
+    flask_app.run(port=8080)

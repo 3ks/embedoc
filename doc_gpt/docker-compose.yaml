@@ -1,15 +1,34 @@
 version: '3'
-
 services:
   langchain-serve:
-    build:
-      context: . 
-      target: langchain-serve-img
+    image: env:0.2
     ports:
-      - '8080:8080'
+      - "8080:8080"
+    restart: always
+    environment:
+      - DB_HOST=db
+    networks:
+      - my-network
+    volumes:
+      - /root/embedoc/doc_gpt:/app
+    #entrypoint: [ "lc-serve", "deploy", "local", "api" ]
+    entrypoint: [ "tail", "-f" ,"/dev/null" ]
   pdf-gpt:
-    build:
-      context: . 
-      target: pdf-gpt-img
+    image: env:0.2
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=my_database
     ports:
-      - '7860:7860'
+      - "7860:7860"
+    restart: always
+    entrypoint: ["python3","/app/app.py"]
+    volumes:
+      - /root/embedoc/doc_gpt:/app
+    networks:
+      - my-network
+networks:
+  my-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
